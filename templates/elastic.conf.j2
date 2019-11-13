@@ -1,0 +1,11 @@
+cluster.name: el-cluster
+node.name: {{ host_name }}
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+#bootstrap.memory_lock: true
+network.host: {{ host_ip  }}
+http.port: 9200
+discovery.zen.ping.unicast.hosts: [{{ cluster_ips }}]
+discovery.zen.minimum_master_nodes: 2
+#gateway.recover_after_nodes: 3
+#action.destructive_requires_name: true

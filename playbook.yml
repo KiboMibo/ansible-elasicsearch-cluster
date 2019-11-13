@@ -1,0 +1,81 @@
+- hosts: elastic
+  vars:
+    - host_ip: "{{ ansible_eth1.ipv4.address }}"
+    - host_name: "{{ ansible_nodename }}"
+    - cluster_ips: "\"192.168.60.10\", \"192.168.60.11\", \"192.168.60.12\""
+
+  handlers:
+    - name: restart elasticsearch
+      service: name=elasticsearch state=restarted
+
+    - name: enable elasticsearch
+      service: name=elasticsearch state=enabled
+
+  tasks:
+    - name: Ensure NTP is installed
+      yum: name=ntp state=installed
+    
+    - name: Set time zone
+      timezone:
+        name: Europe/Moscow
+
+    - name: Ensure NTP is running
+      service: name=ntpd state=started enabled=yes
+
+    - name: Add EPEL repository
+      yum: name=epel-release state=installed
+
+    - name: Add elastic repository key
+      rpm_key:
+       state: present
+       key: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+
+    - name: Add elastic 6.8 repository
+      yum_repository:
+        name: "elastic"
+        description: "Elasticsearch repository for 6.x packages"
+        baseurl: "https://artifacts.elastic.co/packages/6.x/yum"
+        enabled: "yes"
+        gpgcheck: "yes"
+        gpgkey: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+        state: present
+  
+    - name: Install Java dependency
+      yum: name=java-latest-openjdk state=installed
+
+    - name: Install ElasticSearch 6.8
+      yum: name=elasticsearch update_cache=yes state=installed
+
+    - name: Configure Firewalld
+      firewalld:
+        port: "{{ item  }}"
+        permanent: yes
+        state: enabled
+      loop:
+        - 9200/tcp
+        - 9300/tcp
+
+    - name: check if elacticsearch.yml exists
+      stat: 
+        path: /etc/elasticsearch/elasticsearch.yml
+      register: elastic_conf
+
+    - name: Backup elasticsearch config
+      copy:
+        src: /etc/elasticsearch/elasticsearch.yml
+        remote_src: true
+        dest: /etc/elasticsearch/elasticsearch.yml.bkp
+        force: no
+      when: elastic_conf.stat.exists == true
+
+    - name: Configure Elasticsearch
+      template:
+        src: "templates/elastic.conf.j2"
+        dest: "/etc/elasticsearch/elasticsearch.yml"
+        owner: root
+        group: elasticsearch
+        mode: 0660
+      notify:
+        - enable elasticsearch
+        - restart elasticsearch
+
