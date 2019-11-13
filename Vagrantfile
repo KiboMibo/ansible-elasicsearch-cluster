@@ -28,9 +28,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config| config.ssh.insert_key = f
 		els.vm.box = "bento/centos-7.7"
 		els.vm.network :private_network, ip: "192.168.60.12"
 	end
-
-	config.vm.provision "ansible" do |ansible| ansible.playbook = "playbook.yml"
-		# Run commands as root.
-		ansible.become = true
-	end 
+    
+    config.vm.provision "ansible" do |ansible|
+        ansible.playbook = "playbook.yml"
+        ansible.groups = {
+            "elastic" => ["el-one", "el-two", "el-three"],
+            "elastic:vars" => {
+                "ansible_ssh_user" => "vagrant",
+                "ansible_ssh_private_key_file" => "~/.vagrant.d/insecure_private_key"
+            }
+        }
+        ansible.become = true
+    end
 end

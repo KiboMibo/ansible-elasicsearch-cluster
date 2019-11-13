@@ -9,7 +9,7 @@
       service: name=elasticsearch state=restarted
 
     - name: enable elasticsearch
-      service: name=elasticsearch state=enabled
+      service: name=elasticsearch enabled=true
 
   tasks:
     - name: Ensure NTP is installed
